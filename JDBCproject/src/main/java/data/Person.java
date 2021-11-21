@@ -2,20 +2,21 @@ package data;
 
 public class Person {
 
-    private int id;
+    private Integer id;
     private String name;
     private String position;
-    private int pay;
+    private Integer pay;
     private Department department;
 
     public Person() {
+        department = new Department();
     }
 
-    public int getId() {
+    public Integer getId() {
         return id;
     }
 
-    public void setId(int id) {
+    public void setId(Integer id) {
         this.id = id;
     }
 
@@ -35,11 +36,11 @@ public class Person {
         this.position = position;
     }
 
-    public int getPay() {
+    public Integer getPay() {
         return pay;
     }
 
-    public void setPay(int pay) {
+    public void setPay(Integer pay) {
         this.pay = pay;
     }
 
@@ -49,5 +50,17 @@ public class Person {
 
     public void setDepartment(Department department) {
         this.department = department;
+    }
+
+    @Override
+    public String toString() {
+        return "Person{" +
+                "id=" + id +
+                ", name='" + name + '\'' +
+                ", position='" + position + '\'' +
+                ", pay=" + pay +
+                ", department_id=" + department.getId() +
+                ", department_name=" + department.getName() +
+                '}';
     }
 }

@@ -1,23 +1,20 @@
 package data;
 
-import java.util.List;
-
 public class Department {
 
-    private int id;
+    private Integer id;
     private String name;
-    private int roomNumber;
+    private Integer roomNumber;
     private String phone;
-    private List<Person> personnel;
 
     public Department() {
     }
 
-    public int getId() {
+    public Integer getId() {
         return id;
     }
 
-    public void setId(int id) {
+    public void setId(Integer id) {
         this.id = id;
     }
 
@@ -29,11 +26,11 @@ public class Department {
         this.name = name;
     }
 
-    public int getRoomNumber() {
+    public Integer getRoomNumber() {
         return roomNumber;
     }
 
-    public void setRoomNumber(int roomNumber) {
+    public void setRoomNumber(Integer roomNumber) {
         this.roomNumber = roomNumber;
     }
 
@@ -43,14 +40,6 @@ public class Department {
 
     public void setPhone(String phone) {
         this.phone = phone;
-    }
-
-    public List<Person> getPersonnel() {
-        return personnel;
-    }
-
-    public void setPersonnel(List<Person> personnel) {
-        this.personnel = personnel;
     }
 
     @Override

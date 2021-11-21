@@ -1,9 +1,6 @@
 package service;
 
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.SQLException;
-import java.sql.Statement;
+import java.sql.*;
 
 public class DBHelper {
 
@@ -44,12 +41,22 @@ public class DBHelper {
         return connection.createStatement();
     }
 
+    // для добавления записей, чтобы можно было определить id добавленной записи с помощью ключа RETURN_GENERATED_KEYS
+    public static PreparedStatement getPreparedStatement(String query) throws SQLException {
+        return connection.prepareStatement(query, PreparedStatement.RETURN_GENERATED_KEYS);
+    }
+
     public static void closeStatement(Statement statement) throws SQLException {
         statement.close();
     }
 
     public static void commitChanges() throws SQLException {
         connection.commit();
+    }
+
+    public static void closeStatementAndCommitChanges(Statement statement) throws SQLException {
+        closeStatement(statement);
+        commitChanges();
     }
 
 }
