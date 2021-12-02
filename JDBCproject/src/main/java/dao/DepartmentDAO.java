@@ -1,6 +1,6 @@
 package dao;
 
-import data.Department;
+import entity.Department;
 
 public interface DepartmentDAO extends GeneralDAO<Department> {
 }

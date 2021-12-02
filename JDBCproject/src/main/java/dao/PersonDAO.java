@@ -1,6 +1,6 @@
 package dao;
 
-import data.Person;
+import entity.Person;
 
 public interface PersonDAO extends GeneralDAO<Person> {
 }
