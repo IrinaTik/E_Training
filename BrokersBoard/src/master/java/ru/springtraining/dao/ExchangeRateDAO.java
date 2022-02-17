@@ -1,6 +1,6 @@
-package dao;
+package ru.springtraining.dao;
 
-import entity.ExchangeRate;
+import ru.springtraining.entity.ExchangeRate;
 import org.springframework.stereotype.Component;
 
 import java.sql.SQLException;

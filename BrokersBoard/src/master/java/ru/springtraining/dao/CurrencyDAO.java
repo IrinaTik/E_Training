@@ -1,6 +1,6 @@
-package dao;
+package ru.springtraining.dao;
 
-import entity.Currency;
+import ru.springtraining.entity.Currency;
 import org.springframework.stereotype.Component;
 
 import java.sql.SQLException;

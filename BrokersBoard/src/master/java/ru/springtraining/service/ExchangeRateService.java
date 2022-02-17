@@ -1,10 +1,9 @@
-package service;
+package ru.springtraining.service;
 
 
-import dao.ExchangeRateDAO;
-import entity.ExchangeRate;
+import ru.springtraining.dao.ExchangeRateDAO;
+import ru.springtraining.entity.ExchangeRate;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
 
 import java.sql.SQLException;

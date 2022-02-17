@@ -1,4 +1,4 @@
-package entity;
+package ru.springtraining.entity;
 
 import lombok.*;
 import org.springframework.context.annotation.Scope;
