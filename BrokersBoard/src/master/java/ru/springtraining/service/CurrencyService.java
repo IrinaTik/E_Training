@@ -14,12 +14,11 @@ public class CurrencyService {
 
     private final CurrencyRepository currencyRepository;
 
-    //TODO все методы по работе с данными
-
     public List<Currency> getAll() {
         return currencyRepository.findAll();
     }
-        public Currency getById(int id) {
+
+    public Currency getById(int id) {
         return currencyRepository.getById(id);
     }
 

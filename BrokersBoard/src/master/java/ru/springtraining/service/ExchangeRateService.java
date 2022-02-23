@@ -1,40 +1,29 @@
 package ru.springtraining.service;
 
 
-import ru.springtraining.dao.ExchangeRateDAO;
-import ru.springtraining.entity.ExchangeRate;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import ru.springtraining.entity.ExchangeRate;
+import ru.springtraining.repository.ExchangeRateRepository;
 
-import java.sql.SQLException;
 import java.util.List;
 
 @Service
+@Transactional
+@RequiredArgsConstructor(onConstructor = @__(@Autowired))
 public class ExchangeRateService {
 
-    @Autowired
-    private ExchangeRateDAO exchangeRateDAO;
+    private final ExchangeRateRepository rateRepository;
 
-    //TODO
-
-    public List<ExchangeRate> getAll() throws SQLException {
-        return exchangeRateDAO.getAll();
+    public List<ExchangeRate> getAll() {
+        return rateRepository.findAll();
     }
 
-    public ExchangeRate getById(int id) throws SQLException {
-        return exchangeRateDAO.getById(id);
+    public ExchangeRate getById(Integer id) {
+        return rateRepository.getById(id);
     }
 
-    public boolean add(ExchangeRate rate) throws SQLException {
-        return exchangeRateDAO.add(rate);
-    }
-
-    public void update(String query) throws SQLException {
-
-    }
-
-    public void delete(String query) throws SQLException {
-
-    }
 
 }
