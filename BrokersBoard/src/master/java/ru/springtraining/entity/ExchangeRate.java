@@ -1,5 +1,6 @@
 package ru.springtraining.entity;
 
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -23,7 +24,7 @@ public class ExchangeRate {
 
     @Id
     @Column(name = "id")
-    @GeneratedValue(strategy = GenerationType.AUTO)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
     @OneToOne
@@ -38,6 +39,7 @@ public class ExchangeRate {
     private Integer firstCurrencyValue;
 
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "rate", orphanRemoval = true, fetch = FetchType.EAGER)
+    @JsonManagedReference
     private List<ExchangeRateHistory> history;
 
     public String latestExchangeRateToString() {

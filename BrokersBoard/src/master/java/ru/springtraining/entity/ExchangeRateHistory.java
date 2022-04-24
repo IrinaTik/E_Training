@@ -1,5 +1,6 @@
 package ru.springtraining.entity;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -7,7 +8,7 @@ import lombok.Setter;
 import org.hibernate.Hibernate;
 
 import javax.persistence.*;
-import java.time.LocalDateTime;
+import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.Objects;
 
@@ -24,21 +25,22 @@ public class ExchangeRateHistory {
 
     @Id
     @Column(name = "id")
-    @GeneratedValue(strategy = GenerationType.AUTO)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
     @ManyToOne(fetch = FetchType.EAGER, optional = false)
     @JoinColumn(name = "rate_id")
+    @JsonBackReference
     private ExchangeRate rate;
 
     @Column(name = "date_time")
-    private LocalDateTime date;
+    private LocalDate date;
 
     @Column(name = "currency_value")
     private Double currencyValue;
 
     private String formatDate() {
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
         return date.format(formatter);
     }
 

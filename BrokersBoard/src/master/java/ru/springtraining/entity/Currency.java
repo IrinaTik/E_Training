@@ -4,7 +4,6 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import org.hibernate.Hibernate;
 
 import javax.persistence.*;
 import java.util.Objects;
@@ -22,7 +21,7 @@ public class Currency {
 
     @Id
     @Column(name = "id")
-    @GeneratedValue(strategy = GenerationType.AUTO)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
     @Column(name = "name")
@@ -37,14 +36,14 @@ public class Currency {
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
-        if (o == null || Hibernate.getClass(this) != Hibernate.getClass(o)) return false;
+        if (o == null || getClass() != o.getClass()) return false;
         Currency currency = (Currency) o;
-        return id != null && Objects.equals(id, currency.id);
+        return Objects.equals(id, currency.id) && Objects.equals(code, currency.code);
     }
 
     @Override
     public int hashCode() {
-        return getClass().hashCode();
+        return Objects.hash(id, code);
     }
 
     @Override
