@@ -4,7 +4,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.transaction.annotation.EnableTransactionManagement;
 import ru.springtraining.entity.ExchangeRate;
 import ru.springtraining.service.CurrencyService;
 import ru.springtraining.service.ExchangeRateService;
@@ -29,6 +28,6 @@ public class Main implements CommandLineRunner {
         List<ExchangeRate> rates = rateService.getAll();
         rates.forEach(System.out::println);
         rates.stream().map(ExchangeRate::latestExchangeRateToString).forEach(System.out::println);
-        System.exit(0);
     }
+
 }

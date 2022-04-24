@@ -8,6 +8,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import ru.springtraining.mappers.CBCurrencyToCurrencyMapper;
 import ru.springtraining.response.ExchangeRateResponse;
 import ru.springtraining.response.CBCurrency;
 import ru.springtraining.entity.Currency;
@@ -30,6 +31,7 @@ public class ExchangeRateService {
 
     private final ExchangeRateRepository rateRepository;
     private final CurrencyService currencyService;
+    private final CBCurrencyToCurrencyMapper cbCurrencyToCurrencyMapper;
 
     // сайт вида https://www.cbr-xml-daily.ru//archive//yyyy//MM//dd//daily_json.js
     private static String CBSiteArchive = "https://www.cbr-xml-daily.ru//archive//%s//%s//%s//daily_json.js";
@@ -148,11 +150,11 @@ public class ExchangeRateService {
             if (secondCurrencyCode.equals(RUB_CODE)) {
                 historyEntry.setCurrencyValue(cbCurrencyMap.get(firstCurrencyCode.toLowerCase()).getValue());
             } else {
-                // кросс-курс вычисляется по формуле (value2 * nominal2)/(value1 * nominal1)
+                // кросс-курс вычисляется по формуле (value1 * nominal2)/(value2 * nominal1)
                 CBCurrency firstBankCurrency = cbCurrencyMap.get(firstCurrencyCode.toLowerCase());
                 CBCurrency secondBankCurrency = cbCurrencyMap.get(secondCurrencyCode.toLowerCase());
-                Double crossRateValue = (secondBankCurrency.getValue() * secondBankCurrency.getNominal()) /
-                        (firstBankCurrency.getValue() * firstBankCurrency.getNominal());
+                Double crossRateValue = (firstBankCurrency.getValue() * secondBankCurrency.getNominal()) /
+                        (secondBankCurrency.getValue() * firstBankCurrency.getNominal());
                 historyEntry.setCurrencyValue(roundUpToFourDecimalPlaces(crossRateValue));
             }
         }
@@ -166,9 +168,7 @@ public class ExchangeRateService {
 
     private Currency createCurrencyFromCBInfo(Map<String, CBCurrency> cbCurrencyMap, String currencyCode) {
         CBCurrency bankCurrencyInfo = getBankCurrencyFromCBSite(cbCurrencyMap, currencyCode);
-        Currency currency = new Currency();
-        currency.setName(bankCurrencyInfo.getName().toUpperCase());
-        currency.setCode(bankCurrencyInfo.getCharcode().toUpperCase());
+        Currency currency = cbCurrencyToCurrencyMapper.cbCurrencyToCurrency(bankCurrencyInfo);
         currency.setOrg("Other");
         return currency;
     }
