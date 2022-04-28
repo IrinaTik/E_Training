@@ -21,6 +21,7 @@ import java.time.LocalDate;
 import java.time.Month;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -60,33 +61,21 @@ public class ExchangeRateService {
 
     public ExchangeRateResponse getByCurrenciesAndDate
             (String firstCurrencyCode, String secondCurrencyCode, LocalDate date) throws Exception {
-        Currency firstCurrency = currencyService.findByCode(firstCurrencyCode);
-        Currency secondCurrency = currencyService.findByCode(secondCurrencyCode);
+        Map<String, CBCurrency> cbCurrencyMap = new HashMap<>();
+        Currency firstCurrency = getCurrency(cbCurrencyMap, date, firstCurrencyCode);
+        Currency secondCurrency = getCurrency(cbCurrencyMap, date, secondCurrencyCode);
         if ((firstCurrency == null) || (secondCurrency == null)) {
-            Map<String, CBCurrency> cbCurrencyMap = getCBInfo(date);
-            // если информации о валюте нет на сайте ЦБ и это не рубль, то ввод кодов был неверным
-            if (isAbsentInCBSiteAndNotRuble(cbCurrencyMap, firstCurrencyCode) ||
-                    isAbsentInCBSiteAndNotRuble(cbCurrencyMap, secondCurrencyCode)) {
-                return null;
-            }
-            // если ввод кодов был верен и информации о валюте нет в БД, идем на сайт ЦБ и сохраняем валюту в БД
-            if (firstCurrency == null) {
-                firstCurrency = createCurrencyFromCBInfoAndSaveToBD(cbCurrencyMap, firstCurrencyCode);
-            }
-            if (secondCurrency == null) {
-                secondCurrency = createCurrencyFromCBInfoAndSaveToBD(cbCurrencyMap, secondCurrencyCode);
-            }
-            ExchangeRate rate = createExchangeRateFromCBInfo(cbCurrencyMap, date, firstCurrency, secondCurrency);
-            add(rate);
-            return createExchangeRateResponse(rate, rate.getHistory().get(0));
+            return null;
         }
+        return sendExchangeRateResponse(cbCurrencyMap, date, firstCurrency, secondCurrency);
+    }
 
+    private ExchangeRateResponse sendExchangeRateResponse(Map<String, CBCurrency> cbCurrencyMap, LocalDate date,
+                                                          Currency firstCurrency, Currency secondCurrency) throws Exception {
         ExchangeRate rate = rateRepository.getByCurrencies(firstCurrency, secondCurrency);
-        // если валюты были в БД, а их курс нет
+        // если курса нет в БД
         if (rate == null) {
-            Map<String, CBCurrency> cbCurrencyMap = getCBInfo(date);
-            rate = createExchangeRateFromCBInfo(cbCurrencyMap, date, firstCurrency, secondCurrency);
-            add(rate);
+            rate = createAndSaveExchangeRate(cbCurrencyMap, date, firstCurrency, secondCurrency);
             return createExchangeRateResponse(rate, rate.getHistory().get(0));
         } else {
             // если и валюты, и их курс были в БД, то ищем в истории запись за указанную дату
@@ -97,14 +86,67 @@ public class ExchangeRateService {
                 }
             }
             // записи за указанную дату не оказалось, создаем ее и записываем в БД
-            Map<String, CBCurrency> cbCurrencyMap = getCBInfo(date);
             ExchangeRateHistory newHistoryEntry =
-                    createExchangeRateHistoryFromCBInfo(cbCurrencyMap, date, firstCurrency.getCode(), secondCurrency.getCode());
-            newHistoryEntry.setRate(rate);
-            rate.getHistory().add(newHistoryEntry);
-            update(rate);
+                    createHistoryAndUpdateExchangeRate(cbCurrencyMap, date, firstCurrency, secondCurrency, rate);
             return createExchangeRateResponse(rate, newHistoryEntry);
         }
+    }
+
+    private ExchangeRateHistory createHistoryAndUpdateExchangeRate(Map<String, CBCurrency> cbCurrencyMap, LocalDate date,
+                                              Currency firstCurrency, Currency secondCurrency, ExchangeRate rate) throws Exception {
+        cbCurrencyMap = getCBInfo(cbCurrencyMap, date);
+        ExchangeRateHistory newHistoryEntry =
+                createExchangeRateHistoryFromCBInfo(cbCurrencyMap, date, firstCurrency.getCode(), secondCurrency.getCode());
+        newHistoryEntry.setRate(rate);
+        rate.getHistory().add(newHistoryEntry);
+        update(rate);
+        return newHistoryEntry;
+    }
+
+    private Currency getCurrency(Map<String, CBCurrency> cbCurrencyMap, LocalDate date, String currencyCode) throws Exception {
+        Currency currency = getCurrencyFromBD(currencyCode);
+        if (currency == null) {
+            CBCurrency bankCurrency = getBankCurrency(cbCurrencyMap, date, currencyCode);
+            // если информации о валюте нет на сайте ЦБ, то ввод кодов был неверным
+            if (bankCurrency == null) {
+                return null;
+            }
+            currency = createCurrencyFromCBCurrency(bankCurrency);
+            return saveCurrencyToBD(currency);
+        }
+        return currency;
+    }
+
+    private Map<String, CBCurrency> getCBInfo(Map<String, CBCurrency> cbCurrencyMap, LocalDate date) throws Exception {
+        if (cbCurrencyMap.isEmpty()) {
+            return getCBInfo(date);
+        }
+        return cbCurrencyMap;
+    }
+
+    private Currency getCurrencyFromBD(String currencyCode) {
+        return currencyService.findByCode(currencyCode);
+    }
+
+    private Currency saveCurrencyToBD(Currency currency) {
+        return currencyService.add(currency);
+    }
+
+    private Currency createCurrencyFromCBCurrency(CBCurrency bankCurrency) {
+        Currency currency = cbCurrencyToCurrencyMapper.cbCurrencyToCurrency(bankCurrency);
+        currency.setOrg("Other");
+        return currency;
+    }
+
+    private CBCurrency getBankCurrency(Map<String, CBCurrency> cbCurrencyMap, LocalDate date, String currencyCode) throws Exception {
+        cbCurrencyMap = getCBInfo(cbCurrencyMap, date);
+        return cbCurrencyMap.get(currencyCode.toLowerCase());
+    }
+
+    private ExchangeRate createAndSaveExchangeRate
+            (Map<String, CBCurrency> cbCurrencyMap, LocalDate date, Currency firstCurrency, Currency secondCurrency) throws Exception {
+        ExchangeRate rate = createExchangeRateFromCBInfo(cbCurrencyMap, date, firstCurrency, secondCurrency);
+        return add(rate);
     }
 
     private Map<String, CBCurrency> getCBInfo(LocalDate date) throws Exception {
@@ -124,7 +166,7 @@ public class ExchangeRateService {
     }
 
     private ExchangeRate createExchangeRateFromCBInfo
-            (Map<String, CBCurrency> cbCurrencyMap, LocalDate date, Currency firstCurrency, Currency secondCurrency) {
+            (Map<String, CBCurrency> cbCurrencyMap, LocalDate date, Currency firstCurrency, Currency secondCurrency) throws Exception {
         ExchangeRate rate = new ExchangeRate();
         rate.setFirstCurrency(firstCurrency);
         rate.setSecondCurrency(secondCurrency);
@@ -138,39 +180,27 @@ public class ExchangeRateService {
     }
 
     private ExchangeRateHistory createExchangeRateHistoryFromCBInfo
-            (Map<String, CBCurrency> cbCurrencyMap, LocalDate date, String firstCurrencyCode, String secondCurrencyCode) {
+            (Map<String, CBCurrency> cbCurrencyMap, LocalDate date, String firstCurrencyCode, String secondCurrencyCode) throws Exception {
         ExchangeRateHistory historyEntry = new ExchangeRateHistory();
         historyEntry.setDate(date);
         // вычисление значений курса - для пар валют с рублем и без рубля (кросс-курс)
-        if (firstCurrencyCode.equals(RUB_CODE)) {
-            CBCurrency bankCurrency = cbCurrencyMap.get(secondCurrencyCode.toLowerCase());
+        if (isRuble(firstCurrencyCode)) {
+            CBCurrency bankCurrency = getBankCurrency(cbCurrencyMap, date, secondCurrencyCode);
             Double rateValue = 1 / (bankCurrency.getValue() * bankCurrency.getNominal());
             historyEntry.setCurrencyValue(roundUpToFourDecimalPlaces(rateValue));
         } else {
-            if (secondCurrencyCode.equals(RUB_CODE)) {
-                historyEntry.setCurrencyValue(cbCurrencyMap.get(firstCurrencyCode.toLowerCase()).getValue());
+            if (isRuble(secondCurrencyCode)) {
+                historyEntry.setCurrencyValue(getBankCurrency(cbCurrencyMap, date, firstCurrencyCode).getValue());
             } else {
                 // кросс-курс вычисляется по формуле (value1 * nominal2)/(value2 * nominal1)
-                CBCurrency firstBankCurrency = cbCurrencyMap.get(firstCurrencyCode.toLowerCase());
-                CBCurrency secondBankCurrency = cbCurrencyMap.get(secondCurrencyCode.toLowerCase());
+                CBCurrency firstBankCurrency = getBankCurrency(cbCurrencyMap, date, firstCurrencyCode);
+                CBCurrency secondBankCurrency = getBankCurrency(cbCurrencyMap, date, secondCurrencyCode);
                 Double crossRateValue = (firstBankCurrency.getValue() * secondBankCurrency.getNominal()) /
                         (secondBankCurrency.getValue() * firstBankCurrency.getNominal());
                 historyEntry.setCurrencyValue(roundUpToFourDecimalPlaces(crossRateValue));
             }
         }
         return historyEntry;
-    }
-
-    private Currency createCurrencyFromCBInfoAndSaveToBD(Map<String, CBCurrency> cbCurrencyMap, String currencyCode) {
-        Currency currency = createCurrencyFromCBInfo(cbCurrencyMap, currencyCode);
-        return currencyService.add(currency);
-    }
-
-    private Currency createCurrencyFromCBInfo(Map<String, CBCurrency> cbCurrencyMap, String currencyCode) {
-        CBCurrency bankCurrencyInfo = getBankCurrencyFromCBSite(cbCurrencyMap, currencyCode);
-        Currency currency = cbCurrencyToCurrencyMapper.cbCurrencyToCurrency(bankCurrencyInfo);
-        currency.setOrg("Other");
-        return currency;
     }
 
     public LocalDate createDateFromRequest(String date) {
@@ -192,16 +222,12 @@ public class ExchangeRateService {
         return response;
     }
 
-    private CBCurrency getBankCurrencyFromCBSite(Map<String, CBCurrency> cbCurrencyMap, String currencyCode) {
-        return cbCurrencyMap.get(currencyCode.toLowerCase());
-    }
-
     public boolean isDateValid(LocalDate date) {
         return date.isAfter(FIRST_CB_DATE) || date.isEqual(FIRST_CB_DATE);
     }
 
-    private boolean isAbsentInCBSiteAndNotRuble(Map<String, CBCurrency> cbCurrencyMap, String currencyCode) {
-        return !currencyCode.equals(RUB_CODE) && !cbCurrencyMap.containsKey(currencyCode.toLowerCase());
+    private boolean isRuble(String currencyCode) {
+        return currencyCode.equals(RUB_CODE);
     }
 
     private Double roundUpToFourDecimalPlaces(Double value) {
